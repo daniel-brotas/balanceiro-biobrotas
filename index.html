@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bio Brotas • Balanceiro Eletrônico</title>
+    <!-- Ícones do Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f5132 0%, #198754 100%);
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: #0a3d26;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .logo-img {
+            height: 45px;
+            width: auto;
+            border-radius: 50%;
+            background: white;
+            padding: 2px;
+        }
+        .logo-text { 
+            font-size: 1.6rem; 
+            font-weight: bold; 
+            letter-spacing: 1px;
+            text-align: center;
+        }
+        .header-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .user-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .container { max-width: 950px; margin: 20px auto; padding: 15px; }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .login-screen { padding: 35px 20px; text-align: center; }
+        h1 { color: #0f5132; font-size: 1.5rem; }
+        .subtitle { color: #555; margin: 10px 0 25px; font-size: 0.95rem; }
+        
+        .selection-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .option-btn {
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 20px 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #fff;
+            width: 100%;
+            text-align: center;
+        }
+        .option-btn:hover { transform: translateY(-3px); border-color: #198754; }
+        .option-btn.active { border-color: #198754; background: #f8fff9; }
+        
+        /* Botões de Carga e Descarga grandes com destaque de submissão direta */
+        .action-op-btn {
+            border: 2px solid #198754;
+            border-radius: 12px;
+            padding: 20px 15px;
+            cursor: pointer;
+            transition: 0.3s;
+            background: #f8fff9;
+            width: 100%;
+            text-align: center;
+        }
+        .action-op-btn:hover { transform: translateY(-3px); background: #e8f5e9; }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin: 6px 0 15px;
+        }
+        button {
+            background: #198754;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover { opacity: 0.95; }
+        
+        .btn-call {
+            background: #25D366;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-call:hover { background: #1ebc57; }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-delete:hover { background: #bb2d3b; }
+
+        .btn-move {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+        .btn-move:hover { background: #5a6268; }
+
+        .sucesso {
+            display: none;
+            background: #d4edda;
+            color: #0f5132;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .anuncio-box {
+            background: #f8f9fa;
+            border: 2px dashed #198754;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-icon-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .input-icon-wrapper i {
+            position: absolute;
+            left: 12px;
+            top: 40%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: #25D366;
+        }
+        .input-icon-wrapper input {
+            padding-left: 40px;
+        }
+
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 750px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; vertical-align: middle; font-size: 0.9rem; }
+        th { background: #f8f9fa; color: #333; }
+        .seq-num {
+            background: #e9ecef;
+            color: #495057;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 10px;
+            display: inline-block;
+            font-size: 0.85rem;
+        }
+
+        .tab-menu {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            background: #e9ecef;
+            color: #495057;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+            width: auto;
+        }
+        .tab-btn.active {
+            background: #0f5132;
+            color: white;
+        }
+
+        @keyframes piscarAlerta {
+            0% { border-color: #25D366; background: rgba(255,255,255,0.1); }
+            50% { border-color: #ffc107; background: rgba(37,211,102,0.3); }
+            100% { border-color: #25D366; background: rgba(255,255,255,0.1); }
+        }
+        .alerta-tv-ativo {
+            animation: piscarAlerta 0.8s infinite;
+        }
+
+        #modalTV {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #0a3d26;
+            z-index: 9999;
+            color: white;
+            padding: 40px;
+            text-align: center;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @media (max-width: 600px) {
+            .container { padding: 10px; margin: 10px auto; }
+            .header { padding: 12px; }
+            .selection-grid { grid-template-columns: 1fr; gap: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ecrã Modo TV -->
+    <div id="modalTV">
+        <h2 style="font-size: 2rem; color: #a3cfbb; margin-bottom: 20px;">📺 PAINEL DE CHAMADA • BIO BROTAS</h2>
+        <div id="tvCardBox" style="background: rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; width: 100%; max-width: 700px; border: 3px solid #25D366; transition: 0.3s;">
+            <p style="font-size: 1.2rem; opacity: 0.8; text-transform: uppercase;">Veículo Chamado Agora:</p>
+            <h1 id="tvPlaca" style="font-size: 4rem; color: #fff; margin: 15px 0; font-weight: bold; letter-spacing: 2px;">---</h1>
+            <h3 id="tvMotorista" style="font-size: 1.8rem; color: #ffd700;">Aguardando chamada...</h3>
+            <p id="tvTransportadora" style="font-size: 1.2rem; margin-top: 10px; opacity: 0.9;"></p>
+        </div>
+        <button type="button" onclick="fecharModoTV()" style="margin-top: 30px; width: auto; background: #dc3545; padding: 10px 25px;">Sair do Modo TV</button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <img src="https://www.biobrotas.com.br/wp-content/uploads/2023/08/cropped-LOGO1.png" alt="Bio Brotas Logo" class="logo-img">
+            <div class="logo-text">BIO BROTAS</div>
+        </div>
+        <div class="header-subtitle">⚖️ Balanceiro Eletrônico • Carga & Descarga</div>
+    </div>
+
+    <div class="container">
+        <!-- TELA INICIAL -->
+        <div class="card" id="cardTelaInicial">
+            <div class="login-screen">
+                <h1>Bem-vindo ao Balanceiro Eletrônico</h1>
+                <p class="subtitle">Selecione seu perfil para continuar</p>
+                
+                <div class="selection-grid">
+                    <button type="button" class="option-btn" onclick="escolherPerfil('motorista')">
+                        <h2 style="color: #0f5132;">🚛 Motorista</h2>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Registar pesagem/chegada</p>
+                    </button>
+                    <button type="button" class="option-btn" onclick="escolherPerfil('balanceiro')">
+                        <h2 style="color: #0f5132;">⚖️ Balanceiro</h2>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 5px;">Gerenciar e atender veículos</p>
+                    </button>
+                </div>
+
+                <div id="blocoSenha" style="display:none; margin-top:20px;">
+                    <input type="password" id="txtSenha" placeholder="Digite a senha de acesso (1914)" />
+                    <button type="button" onclick="entrarBalanceiro()">Entrar</button>
+                    <button type="button" onclick="cancelarSenha()" style="background:#6c757d; margin-top:8px;">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA PRINCIPAL -->
+        <div class="card" id="cardTelaPrincipal" style="display: none;">
+            <div class="card-body" style="padding:20px 25px 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <h1 id="tituloPrincipal">Registar Entrada na Balança</h1>
+                        <span id="badgePerfil" class="user-badge" style="color: #0f5132; background: #e8f5e9; font-weight: bold;"></span>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <button type="button" id="btnModoTV" onclick="abrirModoTV()" style="display:none; width:auto; background:#0d6efd; padding:8px 16px; font-size:0.9rem;">📺 Modo TV</button>
+                        <button type="button" onclick="voltarInicio()" style="width:auto; background:#6c757d; padding:8px 16px; font-size:0.9rem;">← Sair</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Formulário do Motorista -->
+            <div class="card-body" id="painelMotorista" style="padding:10px 25px 20px;">
+                <div id="formReg">
+                    <label style="font-size:0.9rem; font-weight:bold;">Nome do Motorista</label>
+                    <input type="text" id="campoNome" placeholder="Ex: João Silva" required>
+                    
+                    <label style="font-size:0.9rem; font-weight:bold;">Contato para Chamada</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fa-brands fa-whatsapp"></i>
+                        <input type="tel" id="campoContato" placeholder="(00) 00000-0000" maxlength="15" oninput="aplicarMascaraTel(this)" required>
+                    </div>
+                    
+                    <label style="font-size:0.9rem; font-weight:bold;">Placa do Veículo</label>
+                    <input type="text" id="campoPlaca" placeholder="Ex: ABC-1D23" maxlength="8" style="text-transform: uppercase;" oninput="aplicarMascaraPlaca(this)" required>
+                    
+                    <label style="font-size:0.9rem; font-weight:bold;">Transportadora</label>
+                    <input type="text" id="campoTransportadora" placeholder="Ex: Translog" required>
+                    
+                    <label style="margin-top:10px; display:block; font-size:0.9rem; font-weight:bold;">Selecione a Operação para Registrar:</label>
+                    <div style="display:flex; gap:10px; margin:10px 0 20px;">
+                        <button type="button" class="action-op-btn" onclick="registrarPesagemDireta('carga')" style="flex:1;">
+                            <h3 style="font-size:1.1rem; color:#0f5132;">🚛 REGISTRAR CARGA</h3>
+                        </button>
+                        <button type="button" class="action-op-btn" onclick="registrarPesagemDireta('descarga')" style="flex:1;">
+                            <h3 style="font-size:1.1rem; color:#0f5132;">📦 REGISTRAR DESCARGA</h3>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="msgSucesso" class="sucesso">✅ Registo realizado com sucesso na balança!</div>
+            </div>
+
+            <!-- Painel do Balanceiro (Anúncios) -->
+            <div class="card-body" id="painelBalanceiro" style="display:none; padding:10px 25px;">
+                <div class="anuncio-box">
+                    <label style="font-weight:bold; color:#0f5132; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                        <input type="checkbox" id="chkAnuncio" onchange="toggleAnuncio()" style="width:auto; margin:0;">
+                        📢 Activar Anúncio / Comunicado Automático no WhatsApp
+                    </label>
+                    <div id="boxTextoAnuncio" style="display:none; margin-top:10px;">
+                        <textarea id="txtAnuncio" rows="3" placeholder="Digite aqui o anúncio (Ex: Apresente a Nota Fiscal no guichê de entrada.)"></textarea>
+                        <button type="button" onclick="salvarAnuncio()" style="background:#0f5132; padding:8px; font-size:0.9rem;">Guardar Anúncio</button>
+                    </div>
+                </div>
+
+                <div class="tab-menu">
+                    <button type="button" class="tab-btn active" id="tabFilaBtn" onclick="mudarAba('fila')">📋 Fila Ativa</button>
+                    <button type="button" class="tab-btn" id="tabHistBtn" onclick="mudarAba('historico')">📜 Histórico de Hoje</button>
+                </div>
+            </div>
+
+            <!-- Fila Ativa -->
+            <div class="card-body" id="secaoFila" style="padding:0 25px 30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h2 style="color:#0f5132; font-size:1.2rem;">📋 Fila da Balança</h2>
+                    <button type="button" id="btnChamar" onclick="chamarProximo()" style="display:none; width:auto; background:#25D366; padding:8px 16px; font-size:0.9rem;">
+                        <i class="fa-brands fa-whatsapp"></i> 📢 Chamar Próximo da Fila
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Hora</th>
+                                <th>Motorista</th>
+                                <th>Contato</th>
+                                <th>Placa</th>
+                                <th>Transportadora</th>
+                                <th>Tipo</th>
+                                <th id="thAcao" style="display:none; text-align:center;">Ações & Ordem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyFila"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Histórico -->
+            <div class="card-body" id="secaoHistorico" style="display:none; padding:0 25px 30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h2 style="color:#0f5132; font-size:1.2rem;">📜 Histórico de Atendimentos Concluídos</h2>
+                    <button type="button" onclick="limparHistorico()" style="width:auto; background:#dc3545; padding:6px 12px; font-size:0.8rem;">🗑 Limpar Histórico</button>
+                </div>
+
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Hora Entrada</th>
+                                <th>Motorista</th>
+                                <th>Placa</th>
+                                <th>Transportadora</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyHistorico"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tipoUsuario = '';
+
+        function escolherPerfil(perfil) {
+            if (perfil === 'motorista') {
+                tipoUsuario = 'motorista';
+                mudarTela();
+            } else {
+                document.getElementById('blocoSenha').style.display = 'block';
+            }
+        }
+
+        function entrarBalanceiro() {
+            const senha = document.getElementById('txtSenha').value;
+            if (senha === "1914") {
+                tipoUsuario = 'balanceiro';
+                mudarTela();
+            } else {
+                alert("Senha incorreta!");
+                document.getElementById('txtSenha').value = '';
+            }
+        }
+
+        function cancelarSenha() {
+            document.getElementById('blocoSenha').style.display = 'none';
+            document.getElementById('txtSenha').value = '';
+        }
+
+        function mudarTela() {
+            document.getElementById('cardTelaInicial').style.display = 'none';
+            document.getElementById('cardTelaPrincipal').style.display = 'block';
+            document.getElementById('blocoSenha').style.display = 'none';
+            document.getElementById('txtSenha').value = '';
+
+            const badge = document.getElementById('badgePerfil');
+            const titulo = document.getElementById('tituloPrincipal');
+            const painelMot = document.getElementById('painelMotorista');
+            const painelBal = document.getElementById('painelBalanceiro');
+            const btnChamar = document.getElementById('btnChamar');
+            const btnTV = document.getElementById('btnModoTV');
+            const thAcao = document.getElementById('thAcao');
+
+            if (tipoUsuario === 'balanceiro') {
+                badge.innerText = 'Perfil: Balanceiro';
+                titulo.innerText = 'Painel do Balanceiro';
+                painelMot.style.display = 'none';
+                painelBal.style.display = 'block';
+                btnChamar.style.display = 'inline-block';
+                btnTV.style.display = 'inline-block';
+                thAcao.style.display = 'table-cell';
+                carregarAnuncios();
+            } else {
+                badge.innerText = 'Perfil: Motorista';
+                titulo.innerText = 'Registar Entrada na Balança';
+                painelMot.style.display = 'block';
+                painelBal.style.display = 'none';
+                btnChamar.style.display = 'none';
+                btnTV.style.display = 'none';
+                thAcao.style.display = 'none';
+            }
+
+            recarregarListas();
+        }
+
+        function voltarInicio() {
+            document.getElementById('cardTelaInicial').style.display = 'block';
+            document.getElementById('cardTelaPrincipal').style.display = 'none';
+            tipoUsuario = '';
+        }
+
+        function aplicarMascaraTel(el) {
+            let v = el.value.replace(/\D/g, '');
+            if (v.length > 11) v = v.slice(0, 11);
+            if (v.length > 6) {
+                el.value = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+            } else if (v.length > 2) {
+                el.value = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+            } else if (v.length > 0) {
+                el.value = `(${v}`;
+            }
+        }
+
+        function aplicarMascaraPlaca(el) {
+            let v = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (v.length > 7) v = v.slice(0, 7);
+            if (v.length > 3) {
+                el.value = `${v.slice(0, 3)}-${v.slice(3)}`;
+            } else {
+                el.value = v;
+            }
+        }
+
+        function tocarSomAlertaVisual() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(659.25, ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, ctx.currentTime);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.4);
+            } catch(e) {}
+
+            const box = document.getElementById('tvCardBox');
+            if (box) {
+                box.classList.add('alerta-tv-ativo');
+                setTimeout(() => {
+                    box.classList.remove('alerta-tv-ativo');
+                }, 3000);
+            }
+        }
+
+        function mudarAba(aba) {
+            if (aba === 'fila') {
+                document.getElementById('secaoFila').style.display = 'block';
+                document.getElementById('secaoHistorico').style.display = 'none';
+                document.getElementById('tabFilaBtn').classList.add('active');
+                document.getElementById('tabHistBtn').classList.remove('active');
+            } else {
+                document.getElementById('secaoFila').style.display = 'none';
+                document.getElementById('secaoHistorico').style.display = 'block';
+                document.getElementById('tabFilaBtn').classList.remove('active');
+                document.getElementById('tabHistBtn').classList.add('active');
+            }
+        }
+
+        function abrirModoTV() {
+            const regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+            const hist = JSON.parse(localStorage.getItem('hist_balanca') || '[]');
+            
+            if (hist.length > 0) {
+                let u = hist[hist.length - 1];
+                document.getElementById('tvPlaca').innerText = u.placa;
+                document.getElementById('tvMotorista').innerText = `Motorista: ${u.nome}`;
+                document.getElementById('tvTransportadora').innerText = `Transportadora: ${u.transportadora}`;
+            } else if (regs.length > 0) {
+                document.getElementById('tvPlaca').innerText = regs[0].placa;
+                document.getElementById('tvMotorista').innerText = `Motorista: ${regs[0].nome}`;
+                document.getElementById('tvTransportadora').innerText = `Transportadora: ${regs[0].transportadora}`;
+            } else {
+                document.getElementById('tvPlaca').innerText = "---";
+                document.getElementById('tvMotorista').innerText = "Nenhum veículo em atendimento";
+                document.getElementById('tvTransportadora').innerText = "";
+            }
+            document.getElementById('modalTV').style.display = 'flex';
+        }
+
+        function fecharModoTV() {
+            document.getElementById('modalTV').style.display = 'none';
+        }
+
+        function toggleAnuncio() {
+            const atv = document.getElementById('chkAnuncio').checked;
+            document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
+            localStorage.setItem('anc_ativo', atv ? 'true' : 'false');
+        }
+
+        function salvarAnuncio() {
+            const txt = document.getElementById('txtAnuncio').value;
+            localStorage.setItem('anc_texto', txt);
+            alert("Anúncio guardado com sucesso!");
+        }
+
+        function carregarAnuncios() {
+            const atv = localStorage.getItem('anc_ativo') === 'true';
+            const txt = localStorage.getItem('anc_texto') || '';
+            document.getElementById('chkAnuncio').checked = atv;
+            document.getElementById('txtAnuncio').value = txt;
+            document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
+        }
+
+        function recarregarListas() {
+            const regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+            const tbody = document.getElementById('tbodyFila');
+            tbody.innerHTML = '';
+
+            const colspanVal = tipoUsuario === 'balanceiro' ? 8 : 7;
+            if (regs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${colspanVal}" style="text-align:center; color:#888;">Nenhum veículo na fila da balança.</td></tr>`;
+            } else {
+                regs.forEach((r, idx) => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><span class="seq-num">${idx + 1}</span></td>
+                        <td><strong>${r.hora}</strong></td>
+                        <td>${r.nome}</td>
+                        <td><i class="fa-brands fa-whatsapp" style="color:#25D366; margin-right:4px;"></i>${r.contato || '-'}</td>
+                        <td><strong>${r.placa}</strong></td>
+                        <td>${r.transportadora}</td>
+                        <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${r.tipo==='carga'?'#ffc107':'#0d6efd'}">${r.tipo.toUpperCase()}</span></td>
+                        ${tipoUsuario === 'balanceiro' ? `
+                            <td style="text-align:center; white-space:nowrap;">
+                                <button type="button" class="btn-move" onclick="moverItem(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:0.4;"' : ''}><i class="fa-solid fa-arrow-up"></i></button>
+                                <button type="button" class="btn-move" onclick="moverItem(${idx}, 1)" ${idx === regs.length - 1 ? 'disabled style="opacity:0.4;"' : ''}><i class="fa-solid fa-arrow-down"></i></button>
+                                <button type="button" class="btn-call" onclick="avisarIndividual('${r.contato}', '${r.nome}')"><i class="fa-brands fa-whatsapp"></i> Avisar</button>
+                                <button type="button" class="btn-delete" onclick="concluirRegistro(${idx})">✔ Concluir</button>
+                            </td>
+                        ` : ''}
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const hist = JSON.parse(localStorage.getItem('hist_balanca') || '[]');
+            const tbodyH = document.getElementById('tbodyHistorico');
+            tbodyH.innerHTML = '';
+
+            if (hist.length === 0) {
+                tbodyH.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Nenhum atendimento concluído hoje.</td></tr>`;
+            } else {
+                hist.slice().reverse().forEach((h) => {
+                    let tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${h.hora}</strong></td>
+                        <td>${h.nome}</td>
+                        <td><strong>${h.placa}</strong></td>
+                        <td>${h.transportadora}</td>
+                        <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${h.tipo==='carga'?'#ffc107':'#0d6efd'}">${h.tipo.toUpperCase()}</span></td>
+                    `;
+                    tbodyH.appendChild(tr);
+                });
+            }
+        }
+
+        function moverItem(idx, direcao) {
+            let regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+            let novoIndex = idx + direcao;
+            if (novoIndex < 0 || novoIndex >= regs.length) return;
+            
+            let temp = regs[idx];
+            regs[idx] = regs[novoIndex];
+            regs[novoIndex] = temp;
+
+            localStorage.setItem('regs_balanca', JSON.stringify(regs));
+            recarregarListas();
+        }
+
+        function limparHistorico() {
+            if (confirm("Deseja limpar todo o histórico de hoje?")) {
+                localStorage.removeItem('hist_balanca');
+                recarregarListas();
+            }
+        }
+
+        function limparDigitos(tel) {
+            return tel ? tel.replace(/\D/g, '') : '';
+        }
+
+        function chamarProximo() {
+            const regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+            if (regs.length === 0) {
+                alert("Não há veículos na fila!");
+                return;
+            }
+
+            tocarSomAlertaVisual();
+
+            const p1 = regs[0];
+            const n1 = limparDigitos(p1.contato);
+            const m1 = encodeURIComponent(`Olá ${p1.nome}! 🚛 AGORA É SUA VEZ! SEJA BEM VINDO!! Dirija-se à balança.`);
+            window.open(`https://api.whatsapp.com/send?phone=55${n1}&text=${m1}`, '_blank');
+
+            if (regs.length > 1) {
+                setTimeout(() => {
+                    const p2 = regs[1];
+                    const n2 = limparDigitos(p2.contato);
+                    const m2 = encodeURIComponent(`Olá ${p2.nome}! VOCÊ SERÁ O PRÓXIMO DA FILA. Por favor, fique atento e preparado.`);
+                    window.open(`https://api.whatsapp.com/send?phone=55${n2}&text=${m2}`, '_blank');
+                }, 1500);
+            }
+        }
+
+        function avisarIndividual(contato, nome) {
+            tocarSomAlertaVisual();
+            const num = limparDigitos(contato);
+            const msg = encodeURIComponent(`Olá ${nome}! AGORA É SUA VEZ! SEJA BEM VINDO!!`);
+            window.open(`https://api.whatsapp.com/send?phone=55${num}&text=${msg}`, '_blank');
+        }
+
+        function concluirRegistro(idx) {
+            let regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+            let hist = JSON.parse(localStorage.getItem('hist_balanca') || '[]');
+            
+            let removido = regs.splice(idx, 1)[0];
+            if (removido) {
+                hist.push(removido);
+            }
+
+            localStorage.setItem('regs_balanca', JSON.stringify(regs));
+            localStorage.setItem('hist_balanca', JSON.stringify(hist));
+            recarregarListas();
+        }
+
+        function registrarPesagemDireta(tipoOperacao) {
+            const nome = document.getElementById('campoNome').value.trim();
+            const contato = document.getElementById('campoContato').value.trim();
+            const placa = document.getElementById('campoPlaca').value.trim().toUpperCase();
+            const transportadora = document.getElementById('campoTransportadora').value.trim();
+
+            if (!nome || !contato || !placa || !transportadora) {
+                alert("Por favor, preencha todos os campos do formulário antes de escolher Carga ou Descarga!");
+                return;
+            }
+
+            let regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+            let posicao = regs.length + 1;
+
+            let novoReg = {
+                hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                nome,
+                contato,
+                placa,
+                transportadora,
+                tipo: tipoOperacao
+            };
+
+            regs.push(novoReg);
+            localStorage.setItem('regs_balanca', JSON.stringify(regs));
+
+            recarregarListas();
+            tocarSomAlertaVisual();
+
+            document.getElementById('msgSucesso').style.display = 'block';
+
+            const atv = localStorage.getItem('anc_ativo') === 'true';
+            const txt = localStorage.getItem('anc_texto') || '';
+
+            let msgZap = `Olá ${nome}! Seja bem-vindo à Bio Brotas!! 🚛\nVocê está cadastrado com sucesso. Sua posição na fila da balança é a Nº ${posicao}.`;
+            if (atv && txt) {
+                msgZap += `\n\n📢 *ANÚNCIO/COMUNICADO:* ${txt}`;
+            }
+
+            const numLimpo = limparDigitos(contato);
+            window.open(`https://api.whatsapp.com/send?phone=55${numLimpo}&text=${encodeURIComponent(msgZap)}`, '_blank');
+
+            // Limpa o formulário
+            document.getElementById('campoNome').value = '';
+            document.getElementById('campoContato').value = '';
+            document.getElementById('campoPlaca').value = '';
+            document.getElementById('campoTransportadora').value = '';
+
+            setTimeout(() => {
+                document.getElementById('msgSucesso').style.display = 'none';
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
