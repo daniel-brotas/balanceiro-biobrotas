@@ -88,9 +88,9 @@
 <body>
 
 <div class="container">
-  <h2><i class="fa-solid => fa-truck-ramp-box"></i> Bio Brotas - Fila do Balanceiro</h2>
+  <h2><i class="fa-solid fa-truck-ramp-box"></i> Bio Brotas - Fila do Balanceiro</h2>
 
-  <!-- FORMULÁRIO DE REGISTRO -->
+  <!-- FORMULÁRIO DE REGISTRO DE CHEGADA -->
   <form id="filaForm" class="form-group">
     <input type="text" id="motorista" placeholder="Nome do Motorista" required>
     <input type="text" id="placa" placeholder="Placa do Veículo" required>
@@ -101,10 +101,10 @@
       <option value="Insumos">Insumos</option>
       <option value="Outros">Outros</option>
     </select>
-    <button type="submit" class="btn-add"><i class="fa-solid fa-plus"></i> Registrar</button>
+    <button type="submit" class="btn-add"><i class="fa-solid fa-plus"></i> Registrar Chegada</button>
   </form>
 
-  <!-- TABELA DA FILA -->
+  <!-- TABELA DA FILA EM TEMPO REAL -->
   <table>
     <thead>
       <tr>
@@ -116,18 +116,17 @@
       </tr>
     </thead>
     <tbody id="tabelaFila">
-      <tr><td colspan="5" style="text-align:center;">Carregando dados em tempo real...</td></tr>
+      <tr><td colspan="5" style="text-align:center;">Carregando fila em tempo real...</td></tr>
     </tbody>
   </table>
 </div>
 
-<!-- INTEGRAÇÃO COM FIRESTORE EM TEMPO REAL -->
+<!-- CONEXÃO FIRESTORE SEM NECESSIDADE DE SENHA -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } 
     from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Configuração do seu projeto no Firebase
   const firebaseConfig = {
     projectId: "biobrotas-controle-de-fila"
   };
@@ -139,7 +138,7 @@
   const form = document.getElementById("filaForm");
   const tabela = document.getElementById("tabelaFila");
 
-  // 1. Cadastrar veículo no Firestore
+  // Registrar chegada no banco
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const motorista = document.getElementById("motorista").value;
@@ -159,40 +158,9 @@
     }
   });
 
-  // 2. Escutar atualizações em Tempo Real (Sincronização Instantânea)
+  // Atualização instantânea em todos os ecrãs
   const q = query(filaRef, orderBy("criadoEm", "asc"));
   onSnapshot(q, (snapshot) => {
     tabela.innerHTML = "";
     if (snapshot.empty) {
       tabela.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum veículo na fila.</td></tr>`;
-      return;
-    }
-
-    snapshot.forEach((docSnap) => {
-      const data = docSnap.data();
-      const id = docSnap.id;
-      const hora = data.criadoEm ? new Date(data.criadoEm.toDate()).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'}) : 'Aguardando...';
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td><span class="status-badge">${hora}</span></td>
-        <td><strong>${data.motorista}</strong></td>
-        <td>${data.placa}</td>
-        <td>${data.produto}</td>
-        <td><button class="btn-del" onclick="removerDoc('${id}')"><i class="fa-solid fa-trash"></i></button></td>
-      `;
-      tabela.appendChild(tr);
-    });
-  });
-
-  // Função global para remover registro
-  window.removerDoc = async (id) => {
-    if (confirm("Deseja remover este veículo da fila?")) {
-      await deleteDoc(doc(db, "fila_balanceiro", id));
-    }
-  };
-</script>
-
-</body>
-</html>
-   
