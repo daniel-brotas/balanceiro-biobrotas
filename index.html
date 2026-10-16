@@ -258,7 +258,7 @@
 </head>
 <body>
 
-    <!-- Ecrã Modo TV / Monitor (Atualizado em tempo real) -->
+    <!-- Ecrã Modo TV / Monitor -->
     <div id="modalTV">
         <h2 style="font-size: 2rem; color: #a3cfbb; margin-bottom: 20px;">📺 PAINEL DE CHAMADA • BIO BROTAS</h2>
         <div id="tvCardBox" style="background: rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; width: 100%; max-width: 700px; border: 3px solid #25D366; transition: 0.3s;">
@@ -439,15 +439,16 @@
         const filaRef = collection(db, "fila_balanceiro");
         const histRef = collection(db, "historico_balanceiro");
 
-        // COORDENADAS EXATAS DA BIO BROTAS (Substitua abaixo se precisar ajustar a posição exata da portaria via Google Maps)
+        // COORDENADAS EXATAS DA BIO BROTAS (Portaria / Balança)
         const LAT_EMPRESA = -22.2525; 
         const LON_EMPRESA = -48.1441;
-        const RAIO_MAXIMO_KM = 2.0; // Limite rigoroso de raio
+        const RAIO_MAXIMO_KM = 2.0;
 
         let tipoUsuario = '';
         let listaFila = [];
         let listaHistorico = [];
 
+        // Exposição correta das funções globais para o HTML
         window.escolherPerfil = function(perfil) {
             if (perfil === 'motorista') {
                 tipoUsuario = 'motorista';
@@ -583,11 +584,9 @@
             document.getElementById('modalTV').style.display = 'none';
         };
 
-        // Atualização reativa do Monitor/Modo TV baseado nas listas em tempo real
         function atualizarVisualizadorTV() {
-            const box = document.getElementById('tvCardBox');
             if (listaHistorico.length > 0) {
-                let u = listaHistorico[0]; // Último concluído/chamado recentemente
+                let u = listaHistorico[0];
                 document.getElementById('tvPlaca').innerText = u.placa;
                 document.getElementById('tvMotorista').innerText = `Motorista: ${u.nome}`;
                 document.getElementById('tvTransportadora').innerText = `Transportadora: ${u.transportadora} (${u.tipo.toUpperCase()})`;
@@ -622,7 +621,6 @@
             document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
         }
 
-        // LEITURA EM TEMPO REAL DO FIRESTORE (Sincronização global entre todos os ecrãs)
         const qFila = query(filaRef, orderBy("criadoEm", "asc"));
         onSnapshot(qFila, (snapshot) => {
             listaFila = [];
@@ -749,10 +747,85 @@
             }
         };
 
-        // FÓRMULA DE HAVERSINE PARA CÁLCULO DE DISTÂNCIA
         function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             const toRad = (value) => (value * Math.PI) / 180;
-            const R = 6371; // Raio da Terra em km
+            const R = 6371;
             const dLat = toRad(lat2 - lat1);
             const dLon = toRad(lon2 - lon1);
-            const a = Math.sin(dLat / 2) * Math.sin(d
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        window.validarGPSERegistrar = function(tipoOperacao) {
+            const nome = document.getElementById('campoNome').value.trim();
+            const contato = document.getElementById('campoContato').value.trim();
+            const placa = document.getElementById('campoPlaca').value.trim().toUpperCase();
+            const transportadora = document.getElementById('campoTransportadora').value.trim();
+
+            if (!nome || !contato || !placa || !transportadora) {
+                alert("Por favor, preencha todos os campos do formulário antes de registar!");
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                alert("O seu telemóvel/navegador não suporta geolocalização.");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const latMotorista = position.coords.latitude;
+                    const lonMotorista = position.coords.longitude;
+                    const precisoMts = position.coords.accuracy || 0;
+
+                    let distancia = calcularDistanciaKm(LAT_EMPRESA, LON_EMPRESA, latMotorista, lonMotorista);
+                    const margemKm = precisoMts / 1000;
+                    if (distancia > margemKm) {
+                        distancia = distancia - margemKm;
+                    }
+
+                    if (distancia > RAIO_MAXIMO_KM) {
+                        alert(`❌ Acesso negado! Está a aproximadamente ${distancia.toFixed(1)} km da Bio Brotas. O limite permitido é de até ${RAIO_MAXIMO_KM} km.`);
+                        return;
+                    }
+
+                    try {
+                        await addDoc(filaRef, {
+                            nome,
+                            contato,
+                            placa,
+                            transportadora,
+                            tipo: tipoOperacao,
+                            hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                            criadoEm: serverTimestamp()
+                        });
+
+                        tocarSomAlertaVisual();
+
+                        document.getElementById('msgSucesso').style.display = 'block';
+
+                        document.getElementById('campoNome').value = '';
+                        document.getElementById('campoContato').value = '';
+                        document.getElementById('campoPlaca').value = '';
+                        document.getElementById('campoTransportadora').value = '';
+
+                        setTimeout(() => {
+                            document.getElementById('msgSucesso').style.display = 'none';
+                        }, 4000);
+
+                    } catch (err) {
+                        alert("Erro ao gravar registo na nuvem: " + err.message);
+                    }
+                },
+                (error) => {
+                    alert("Não foi possível obter a sua localização GPS. Certifique-se de permitir o acesso à localização nas definições do seu telemóvel.");
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+            );
+        };
+    </script>
+</body>
+</html>
