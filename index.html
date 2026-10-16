@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -257,11 +258,11 @@
 </head>
 <body>
 
-    <!-- Ecrã Modo TV -->
+    <!-- Ecrã Modo TV / Monitor (Atualizado em tempo real) -->
     <div id="modalTV">
         <h2 style="font-size: 2rem; color: #a3cfbb; margin-bottom: 20px;">📺 PAINEL DE CHAMADA • BIO BROTAS</h2>
         <div id="tvCardBox" style="background: rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; width: 100%; max-width: 700px; border: 3px solid #25D366; transition: 0.3s;">
-            <p style="font-size: 1.2rem; opacity: 0.8; text-transform: uppercase;">Veículo Chamado Agora:</p>
+            <p style="font-size: 1.2rem; opacity: 0.8; text-transform: uppercase;">Último Veículo Atendido / Chamado:</p>
             <h1 id="tvPlaca" style="font-size: 4rem; color: #fff; margin: 15px 0; font-weight: bold; letter-spacing: 2px;">---</h1>
             <h3 id="tvMotorista" style="font-size: 1.8rem; color: #ffd700;">Aguardando chamada...</h3>
             <p id="tvTransportadora" style="font-size: 1.2rem; margin-top: 10px; opacity: 0.9;"></p>
@@ -337,7 +338,7 @@
                     <label style="font-size:0.9rem; font-weight:bold;">Transportadora</label>
                     <input type="text" id="campoTransportadora" placeholder="Ex: Translog" required>
                     
-                    <label style="margin-top:10px; display:block; font-size:0.9rem; font-weight:bold;">Selecione a Operação para Registrar (Exige estar a menos de 2 km):</label>
+                    <label style="margin-top:10px; display:block; font-size:0.9rem; font-weight:bold;">Selecione a Operação para Registrar (Validação GPS • Raio 2km):</label>
                     <div style="display:flex; gap:10px; margin:10px 0 20px;">
                         <button type="button" class="action-op-btn" onclick="validarGPSERegistrar('carga')" style="flex:1;">
                             <h3 style="font-size:1.1rem; color:#0f5132;">🚛 REGISTRAR CARGA</h3>
@@ -423,7 +424,7 @@
         </div>
     </div>
 
-    <!-- INTEGRAÇÃO COM CLOUD FIRESTORE E VALIDAÇÃO DE RAIO DE 2KM -->
+    <!-- SCRIPT DE SINCRONIZAÇÃO EM TEMPO REAL E GPS -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } 
@@ -438,10 +439,10 @@
         const filaRef = collection(db, "fila_balanceiro");
         const histRef = collection(db, "historico_balanceiro");
 
-        // Coordenadas centrais da Biobrotas em Brotas / SP
-        const LAT_EMPRESA = -22.2855;
+        // COORDENADAS EXATAS DA BIO BROTAS (Substitua abaixo se precisar ajustar a posição exata da portaria via Google Maps)
+        const LAT_EMPRESA = -22.2855; 
         const LON_EMPRESA = -48.0531;
-        const RAIO_MAXIMO_KM = 2.0; // Limite de raio em quilómetros
+        const RAIO_MAXIMO_KM = 2.0; // Limite rigoroso de raio
 
         let tipoUsuario = '';
         let listaFila = [];
@@ -574,26 +575,32 @@
         };
 
         window.abrirModoTV = function() {
-            if (listaHistorico.length > 0) {
-                let u = listaHistorico[0];
-                document.getElementById('tvPlaca').innerText = u.placa;
-                document.getElementById('tvMotorista').innerText = `Motorista: ${u.nome}`;
-                document.getElementById('tvTransportadora').innerText = `Transportadora: ${u.transportadora}`;
-            } else if (listaFila.length > 0) {
-                document.getElementById('tvPlaca').innerText = listaFila[0].placa;
-                document.getElementById('tvMotorista').innerText = `Motorista: ${listaFila[0].nome}`;
-                document.getElementById('tvTransportadora').innerText = `Transportadora: ${listaFila[0].transportadora}`;
-            } else {
-                document.getElementById('tvPlaca').innerText = "---";
-                document.getElementById('tvMotorista').innerText = "Nenhum veículo em atendimento";
-                document.getElementById('tvTransportadora').innerText = "";
-            }
             document.getElementById('modalTV').style.display = 'flex';
+            atualizarVisualizadorTV();
         };
 
         window.fecharModoTV = function() {
             document.getElementById('modalTV').style.display = 'none';
         };
+
+        // Atualização reativa do Monitor/Modo TV baseado nas listas em tempo real
+        function atualizarVisualizadorTV() {
+            const box = document.getElementById('tvCardBox');
+            if (listaHistorico.length > 0) {
+                let u = listaHistorico[0]; // Último concluído/chamado recentemente
+                document.getElementById('tvPlaca').innerText = u.placa;
+                document.getElementById('tvMotorista').innerText = `Motorista: ${u.nome}`;
+                document.getElementById('tvTransportadora').innerText = `Transportadora: ${u.transportadora} (${u.tipo.toUpperCase()})`;
+            } else if (listaFila.length > 0) {
+                document.getElementById('tvPlaca').innerText = listaFila[0].placa;
+                document.getElementById('tvMotorista').innerText = `Motorista: ${listaFila[0].nome}`;
+                document.getElementById('tvTransportadora').innerText = `Transportadora: ${listaFila[0].transportadora} (${listaFila[0].tipo.toUpperCase()})`;
+            } else {
+                document.getElementById('tvPlaca').innerText = "---";
+                document.getElementById('tvMotorista').innerText = "Nenhum veículo em atendimento";
+                document.getElementById('tvTransportadora').innerText = "";
+            }
+        }
 
         window.toggleAnuncio = function() {
             const atv = document.getElementById('chkAnuncio').checked;
@@ -615,7 +622,7 @@
             document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
         }
 
-        // LEITURA EM TEMPO REAL DO FIRESTORE (Garante sincronização instantânea em todos os painéis e monitores)
+        // LEITURA EM TEMPO REAL DO FIRESTORE (Sincronização global entre todos os ecrãs)
         const qFila = query(filaRef, orderBy("criadoEm", "asc"));
         onSnapshot(qFila, (snapshot) => {
             listaFila = [];
@@ -623,6 +630,7 @@
                 listaFila.push({ id: docSnap.id, ...docSnap.data() });
             });
             recarregarTabelas();
+            atualizarVisualizadorTV();
         });
 
         const qHist = query(histRef, orderBy("concluidoEm", "desc"));
@@ -632,6 +640,7 @@
                 listaHistorico.push({ id: docSnap.id, ...docSnap.data() });
             });
             recarregarTabelas();
+            atualizarVisualizadorTV();
         });
 
         function recarregarTabelas() {
@@ -740,85 +749,10 @@
             }
         };
 
-        // FUNÇÃO DE CÁLCULO DE DISTÂNCIA (Fórmula de Haversine)
+        // FÓRMULA DE HAVERSINE PARA CÁLCULO DE DISTÂNCIA
         function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
             const toRad = (value) => (value * Math.PI) / 180;
             const R = 6371; // Raio da Terra em km
             const dLat = toRad(lat2 - lat1);
             const dLon = toRad(lon2 - lon1);
-            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            return R * c;
-        }
-
-        // REGISTO COM VALIDAÇÃO DE GPS (Raio de 2 km)
-        window.validarGPSERegistrar = function(tipoOperacao) {
-            const nome = document.getElementById('campoNome').value.trim();
-            const contato = document.getElementById('campoContato').value.trim();
-            const placa = document.getElementById('campoPlaca').value.trim().toUpperCase();
-            const transportadora = document.getElementById('campoTransportadora').value.trim();
-
-            if (!nome || !contato || !placa || !transportadora) {
-                alert("Por favor, preencha todos os campos do formulário antes de registar!");
-                return;
-            }
-
-            if (!navigator.geolocation) {
-                alert("O seu navegador não suporta geolocalização.");
-                return;
-            }
-
-            alert("A verificar a sua localização atual por GPS para confirmar a proximidade da Bio Brotas...");
-
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const latMotorista = position.coords.latitude;
-                    const lonMotorista = position.coords.longitude;
-
-                    const distancia = calcularDistanciaKm(LAT_EMPRESA, LON_EMPRESA, latMotorista, lonMotorista);
-
-                    if (distancia > RAIO_MAXIMO_KM) {
-                        alert(`❌ Acesso negado! Está a aproximadamente ${distancia.toFixed(1)} km da Bio Brotas. O limite permitido é de até ${RAIO_MAXIMO_KM} km para efetuar o registo na fila.`);
-                        return;
-                    }
-
-                    // Se estiver dentro do raio permitido, grava no Firestore
-                    try {
-                        await addDoc(filaRef, {
-                            nome,
-                            contato,
-                            placa,
-                            transportadora,
-                            tipo: tipoOperacao,
-                            hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-                            criadoEm: serverTimestamp()
-                        });
-
-                        tocarSomAlertaVisual();
-
-                        document.getElementById('msgSucesso').style.display = 'block';
-
-                        document.getElementById('campoNome').value = '';
-                        document.getElementById('campoContato').value = '';
-                        document.getElementById('campoPlaca').value = '';
-                        document.getElementById('campoTransportadora').value = '';
-
-                        setTimeout(() => {
-                            document.getElementById('msgSucesso').style.display = 'none';
-                        }, 4000);
-
-                    } catch (err) {
-                        alert("Erro ao gravar registo na nuvem: " + err.message);
-                    }
-                },
-                (error) => {
-                    alert("Erro ao obter a localização GPS. Certifique-se de que permitiu o acesso à localização no seu telemóvel/navegador.");
-                },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-            );
-        };
-    </script>
-</body>
-</html>
+            const a = Math.sin(dLat / 2) * Math.sin(d
