@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -135,6 +134,20 @@
             white-space: nowrap;
         }
         .btn-call:hover { background: #1ebc57; }
+
+        .btn-warn {
+            background: #ffc107;
+            color: #000;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        .btn-warn:hover { background: #ffca2c; }
 
         .btn-delete {
             background: #dc3545;
@@ -375,9 +388,6 @@
             <div class="card-body" id="secaoFila" style="padding:0 25px 30px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <h2 style="color:#0f5132; font-size:1.2rem;">📋 Fila da Balança</h2>
-                    <button type="button" id="btnChamar" onclick="chamarProximo()" style="display:none; width:auto; background:#25D366; padding:8px 16px; font-size:0.9rem;">
-                        <i class="fa-brands fa-whatsapp"></i> 📢 Chamar Próximo da Fila
-                    </button>
                 </div>
 
                 <div class="table-responsive">
@@ -448,7 +458,6 @@
         let listaFila = [];
         let listaHistorico = [];
 
-        // Exposição correta das funções globais para o HTML
         window.escolherPerfil = function(perfil) {
             if (perfil === 'motorista') {
                 tipoUsuario = 'motorista';
@@ -485,7 +494,6 @@
             const titulo = document.getElementById('tituloPrincipal');
             const painelMot = document.getElementById('painelMotorista');
             const painelBal = document.getElementById('painelBalanceiro');
-            const btnChamar = document.getElementById('btnChamar');
             const btnTV = document.getElementById('btnModoTV');
             const thAcao = document.getElementById('thAcao');
 
@@ -494,7 +502,6 @@
                 titulo.innerText = 'Painel do Balanceiro';
                 painelMot.style.display = 'none';
                 painelBal.style.display = 'block';
-                btnChamar.style.display = 'inline-block';
                 btnTV.style.display = 'inline-block';
                 thAcao.style.display = 'table-cell';
                 carregarAnuncios();
@@ -503,7 +510,6 @@
                 titulo.innerText = 'Registar Entrada na Balança';
                 painelMot.style.display = 'block';
                 painelBal.style.display = 'none';
-                btnChamar.style.display = 'none';
                 btnTV.style.display = 'none';
                 thAcao.style.display = 'none';
             }
@@ -663,7 +669,8 @@
                         <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${r.tipo==='carga'?'#ffc107':'#0d6efd'}">${(r.tipo||'').toUpperCase()}</span></td>
                         ${tipoUsuario === 'balanceiro' ? `
                             <td style="text-align:center; white-space:nowrap;">
-                                <button type="button" class="btn-call" onclick="avisarIndividual('${r.contato}', '${r.nome}')"><i class="fa-brands fa-whatsapp"></i> Avisar</button>
+                                <button type="button" class="btn-call" onclick="chamarParaBalanca('${r.contato}', '${r.nome}')"><i class="fa-brands fa-whatsapp"></i> Ir à Balança</button>
+                                <button type="button" class="btn-warn" onclick="avisarProximo('${r.contato}', '${r.nome}')"><i class="fa-brands fa-whatsapp"></i> Logo sua Vez</button>
                                 <button type="button" class="btn-delete" onclick="concluirRegistro('${r.id}')">✔ Concluir</button>
                             </td>
                         ` : ''}
@@ -698,33 +705,19 @@
             return tel ? tel.replace(/\D/g, '') : '';
         }
 
-        window.chamarProximo = function() {
-            if (listaFila.length === 0) {
-                alert("Não há veículos na fila!");
-                return;
-            }
-
-            tocarSomAlertaVisual();
-
-            const p1 = listaFila[0];
-            const n1 = limparDigitos(p1.contato);
-            const m1 = encodeURIComponent(`Olá ${p1.nome}! 🚛 AGORA É SUA VEZ! SEJA BEM VINDO!! Dirija-se à balança.`);
-            window.open(`https://api.whatsapp.com/send?phone=55${n1}&text=${m1}`, '_blank');
-
-            if (listaFila.length > 1) {
-                setTimeout(() => {
-                    const p2 = listaFila[1];
-                    const n2 = limparDigitos(p2.contato);
-                    const m2 = encodeURIComponent(`Olá ${p2.nome}! VOCÊ SERÁ O PRÓXIMO DA FILA. Por favor, fique atento e preparado.`);
-                    window.open(`https://api.whatsapp.com/send?phone=55${n2}&text=${m2}`, '_blank');
-                }, 1500);
-            }
-        };
-
-        window.avisarIndividual = function(contato, nome) {
+        // Botão 1: Informa que é a vez de ir à balança
+        window.chamarParaBalanca = function(contato, nome) {
             tocarSomAlertaVisual();
             const num = limparDigitos(contato);
-            const msg = encodeURIComponent(`Olá ${nome}! AGORA É SUA VEZ! SEJA BEM VINDO!!`);
+            const msg = encodeURIComponent(`Olá ${nome}! 🚛 AGORA É SUA VEZ! SEJA BEM VINDO!! Dirija-se imediatamente à balança.`);
+            window.open(`https://api.whatsapp.com/send?phone=55${num}&text=${msg}`, '_blank');
+        };
+
+        // Botão 2: Informa que logo será a vez dele
+        window.avisarProximo = function(contato, nome) {
+            tocarSomAlertaVisual();
+            const num = limparDigitos(contato);
+            const msg = encodeURIComponent(`Olá ${nome}! ⏳ Fique atento, pois logo será a sua vez de ser chamado para a balança na Bio Brotas.`);
             window.open(`https://api.whatsapp.com/send?phone=55${num}&text=${msg}`, '_blank');
         };
 
