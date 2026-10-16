@@ -337,12 +337,12 @@
                     <label style="font-size:0.9rem; font-weight:bold;">Transportadora</label>
                     <input type="text" id="campoTransportadora" placeholder="Ex: Translog" required>
                     
-                    <label style="margin-top:10px; display:block; font-size:0.9rem; font-weight:bold;">Selecione a Operação para Registrar:</label>
+                    <label style="margin-top:10px; display:block; font-size:0.9rem; font-weight:bold;">Selecione a Operação para Registrar (Exige estar a menos de 2 km):</label>
                     <div style="display:flex; gap:10px; margin:10px 0 20px;">
-                        <button type="button" class="action-op-btn" onclick="registrarPesagemDireta('carga')" style="flex:1;">
+                        <button type="button" class="action-op-btn" onclick="validarGPSERegistrar('carga')" style="flex:1;">
                             <h3 style="font-size:1.1rem; color:#0f5132;">🚛 REGISTRAR CARGA</h3>
                         </button>
-                        <button type="button" class="action-op-btn" onclick="registrarPesagemDireta('descarga')" style="flex:1;">
+                        <button type="button" class="action-op-btn" onclick="validarGPSERegistrar('descarga')" style="flex:1;">
                             <h3 style="font-size:1.1rem; color:#0f5132;">📦 REGISTRAR DESCARGA</h3>
                         </button>
                     </div>
@@ -423,7 +423,7 @@
         </div>
     </div>
 
-    <!-- INTEGRAÇÃO COM CLOUD FIRESTORE EM TEMPO REAL -->
+    <!-- INTEGRAÇÃO COM CLOUD FIRESTORE E VALIDAÇÃO DE RAIO DE 2KM -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } 
@@ -437,6 +437,11 @@
         const db = getFirestore(app);
         const filaRef = collection(db, "fila_balanceiro");
         const histRef = collection(db, "historico_balanceiro");
+
+        // Coordenadas centrais da Biobrotas em Brotas / SP
+        const LAT_EMPRESA = -22.2855;
+        const LON_EMPRESA = -48.0531;
+        const RAIO_MAXIMO_KM = 2.0; // Limite de raio em quilómetros
 
         let tipoUsuario = '';
         let listaFila = [];
@@ -610,7 +615,7 @@
             document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
         }
 
-        // Leitura em Tempo Real do Firestore
+        // LEITURA EM TEMPO REAL DO FIRESTORE (Garante sincronização instantânea em todos os painéis e monitores)
         const qFila = query(filaRef, orderBy("criadoEm", "asc"));
         onSnapshot(qFila, (snapshot) => {
             listaFila = [];
@@ -735,44 +740,84 @@
             }
         };
 
-        window.registrarPesagemDireta = async function(tipoOperacao) {
+        // FUNÇÃO DE CÁLCULO DE DISTÂNCIA (Fórmula de Haversine)
+        function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+            const toRad = (value) => (value * Math.PI) / 180;
+            const R = 6371; // Raio da Terra em km
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // REGISTO COM VALIDAÇÃO DE GPS (Raio de 2 km)
+        window.validarGPSERegistrar = function(tipoOperacao) {
             const nome = document.getElementById('campoNome').value.trim();
             const contato = document.getElementById('campoContato').value.trim();
             const placa = document.getElementById('campoPlaca').value.trim().toUpperCase();
             const transportadora = document.getElementById('campoTransportadora').value.trim();
 
             if (!nome || !contato || !placa || !transportadora) {
-                alert("Por favor, preencha todos os campos do formulário antes de escolher Carga ou Descarga!");
+                alert("Por favor, preencha todos os campos do formulário antes de registar!");
                 return;
             }
 
-            try {
-                await addDoc(filaRef, {
-                    nome,
-                    contato,
-                    placa,
-                    transportadora,
-                    tipo: tipoOperacao,
-                    hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-                    criadoEm: serverTimestamp()
-                });
-
-                tocarSomAlertaVisual();
-
-                document.getElementById('msgSucesso').style.display = 'block';
-
-                document.getElementById('campoNome').value = '';
-                document.getElementById('campoContato').value = '';
-                document.getElementById('campoPlaca').value = '';
-                document.getElementById('campoTransportadora').value = '';
-
-                setTimeout(() => {
-                    document.getElementById('msgSucesso').style.display = 'none';
-                }, 4000);
-
-            } catch (err) {
-                alert("Erro ao gravar registo: " + err.message);
+            if (!navigator.geolocation) {
+                alert("O seu navegador não suporta geolocalização.");
+                return;
             }
+
+            alert("A verificar a sua localização atual por GPS para confirmar a proximidade da Bio Brotas...");
+
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const latMotorista = position.coords.latitude;
+                    const lonMotorista = position.coords.longitude;
+
+                    const distancia = calcularDistanciaKm(LAT_EMPRESA, LON_EMPRESA, latMotorista, lonMotorista);
+
+                    if (distancia > RAIO_MAXIMO_KM) {
+                        alert(`❌ Acesso negado! Está a aproximadamente ${distancia.toFixed(1)} km da Bio Brotas. O limite permitido é de até ${RAIO_MAXIMO_KM} km para efetuar o registo na fila.`);
+                        return;
+                    }
+
+                    // Se estiver dentro do raio permitido, grava no Firestore
+                    try {
+                        await addDoc(filaRef, {
+                            nome,
+                            contato,
+                            placa,
+                            transportadora,
+                            tipo: tipoOperacao,
+                            hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                            criadoEm: serverTimestamp()
+                        });
+
+                        tocarSomAlertaVisual();
+
+                        document.getElementById('msgSucesso').style.display = 'block';
+
+                        document.getElementById('campoNome').value = '';
+                        document.getElementById('campoContato').value = '';
+                        document.getElementById('campoPlaca').value = '';
+                        document.getElementById('campoTransportadora').value = '';
+
+                        setTimeout(() => {
+                            document.getElementById('msgSucesso').style.display = 'none';
+                        }, 4000);
+
+                    } catch (err) {
+                        alert("Erro ao gravar registo na nuvem: " + err.message);
+                    }
+                },
+                (error) => {
+                    alert("Erro ao obter a localização GPS. Certifique-se de que permitiu o acesso à localização no seu telemóvel/navegador.");
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
         };
     </script>
 </body>
