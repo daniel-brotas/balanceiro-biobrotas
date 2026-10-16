@@ -87,9 +87,7 @@
             text-align: center;
         }
         .option-btn:hover { transform: translateY(-3px); border-color: #198754; }
-        .option-btn.active { border-color: #198754; background: #f8fff9; }
         
-        /* Botões de Carga e Descarga grandes com destaque de submissão direta */
         .action-op-btn {
             border: 2px solid #198754;
             border-radius: 12px;
@@ -150,19 +148,6 @@
             white-space: nowrap;
         }
         .btn-delete:hover { background: #bb2d3b; }
-
-        .btn-move {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 6px 8px;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: 0.2s;
-        }
-        .btn-move:hover { background: #5a6268; }
 
         .sucesso {
             display: none;
@@ -311,7 +296,7 @@
                     </button>
                 </div>
 
-                <div id="blocoSenha" style="display:none; margin-top:20px;">
+                <div id="blocoSenha" style="display:none; margin-top:20px; max-width: 400px; margin-left: auto; margin-right: auto;">
                     <input type="password" id="txtSenha" placeholder="Digite a senha de acesso" />
                     <button type="button" onclick="entrarBalanceiro()">Entrar</button>
                     <button type="button" onclick="cancelarSenha()" style="background:#6c757d; margin-top:8px;">Cancelar</button>
@@ -438,19 +423,36 @@
         </div>
     </div>
 
-    <script>
-        let tipoUsuario = '';
+    <!-- INTEGRAÇÃO COM CLOUD FIRESTORE EM TEMPO REAL -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } 
+          from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        function escolherPerfil(perfil) {
+        const firebaseConfig = {
+          projectId: "biobrotas-controle-de-fila"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const filaRef = collection(db, "fila_balanceiro");
+        const histRef = collection(db, "historico_balanceiro");
+
+        let tipoUsuario = '';
+        let listaFila = [];
+        let listaHistorico = [];
+
+        window.escolherPerfil = function(perfil) {
             if (perfil === 'motorista') {
                 tipoUsuario = 'motorista';
                 mudarTela();
             } else {
                 document.getElementById('blocoSenha').style.display = 'block';
+                document.getElementById('txtSenha').focus();
             }
-        }
+        };
 
-        function entrarBalanceiro() {
+        window.entrarBalanceiro = function() {
             const senha = document.getElementById('txtSenha').value;
             if (senha === "1914") {
                 tipoUsuario = 'balanceiro';
@@ -459,12 +461,12 @@
                 alert("Senha incorreta!");
                 document.getElementById('txtSenha').value = '';
             }
-        }
+        };
 
-        function cancelarSenha() {
+        window.cancelarSenha = function() {
             document.getElementById('blocoSenha').style.display = 'none';
             document.getElementById('txtSenha').value = '';
-        }
+        };
 
         function mudarTela() {
             document.getElementById('cardTelaInicial').style.display = 'none';
@@ -498,17 +500,16 @@
                 btnTV.style.display = 'none';
                 thAcao.style.display = 'none';
             }
-
-            recarregarListas();
+            recarregarTabelas();
         }
 
-        function voltarInicio() {
+        window.voltarInicio = function() {
             document.getElementById('cardTelaInicial').style.display = 'block';
             document.getElementById('cardTelaPrincipal').style.display = 'none';
             tipoUsuario = '';
-        }
+        };
 
-        function aplicarMascaraTel(el) {
+        window.aplicarMascaraTel = function(el) {
             let v = el.value.replace(/\D/g, '');
             if (v.length > 11) v = v.slice(0, 11);
             if (v.length > 6) {
@@ -518,9 +519,9 @@
             } else if (v.length > 0) {
                 el.value = `(${v}`;
             }
-        }
+        };
 
-        function aplicarMascaraPlaca(el) {
+        window.aplicarMascaraPlaca = function(el) {
             let v = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
             if (v.length > 7) v = v.slice(0, 7);
             if (v.length > 3) {
@@ -528,7 +529,7 @@
             } else {
                 el.value = v;
             }
-        }
+        };
 
         function tocarSomAlertaVisual() {
             try {
@@ -553,7 +554,7 @@
             }
         }
 
-        function mudarAba(aba) {
+        window.mudarAba = function(aba) {
             if (aba === 'fila') {
                 document.getElementById('secaoFila').style.display = 'block';
                 document.getElementById('secaoHistorico').style.display = 'none';
@@ -565,44 +566,41 @@
                 document.getElementById('tabFilaBtn').classList.remove('active');
                 document.getElementById('tabHistBtn').classList.add('active');
             }
-        }
+        };
 
-        function abrirModoTV() {
-            const regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
-            const hist = JSON.parse(localStorage.getItem('hist_balanca') || '[]');
-            
-            if (hist.length > 0) {
-                let u = hist[hist.length - 1];
+        window.abrirModoTV = function() {
+            if (listaHistorico.length > 0) {
+                let u = listaHistorico[0];
                 document.getElementById('tvPlaca').innerText = u.placa;
                 document.getElementById('tvMotorista').innerText = `Motorista: ${u.nome}`;
                 document.getElementById('tvTransportadora').innerText = `Transportadora: ${u.transportadora}`;
-            } else if (regs.length > 0) {
-                document.getElementById('tvPlaca').innerText = regs[0].placa;
-                document.getElementById('tvMotorista').innerText = `Motorista: ${regs[0].nome}`;
-                document.getElementById('tvTransportadora').innerText = `Transportadora: ${regs[0].transportadora}`;
+            } else if (listaFila.length > 0) {
+                document.getElementById('tvPlaca').innerText = listaFila[0].placa;
+                document.getElementById('tvMotorista').innerText = `Motorista: ${listaFila[0].nome}`;
+                document.getElementById('tvTransportadora').innerText = `Transportadora: ${listaFila[0].transportadora}`;
             } else {
                 document.getElementById('tvPlaca').innerText = "---";
                 document.getElementById('tvMotorista').innerText = "Nenhum veículo em atendimento";
                 document.getElementById('tvTransportadora').innerText = "";
             }
             document.getElementById('modalTV').style.display = 'flex';
-        }
+        };
 
-        function fecharModoTV() {
+        window.fecharModoTV = function() {
             document.getElementById('modalTV').style.display = 'none';
-        }
+        };
 
-        function toggleAnuncio() {
+        window.toggleAnuncio = function() {
             const atv = document.getElementById('chkAnuncio').checked;
             document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
             localStorage.setItem('anc_ativo', atv ? 'true' : 'false');
-        }
+        };
 
-        function salvarAnuncio() {
+        window.salvarAnuncio = function() {
             const txt = document.getElementById('txtAnuncio').value;
             localStorage.setItem('anc_texto', txt);
             alert("Anúncio guardado com sucesso!");
-        }
+        };
 
         function carregarAnuncios() {
             const atv = localStorage.getItem('anc_ativo') === 'true';
@@ -612,31 +610,49 @@
             document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
         }
 
-        function recarregarListas() {
-            const regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
+        // Leitura em Tempo Real do Firestore
+        const qFila = query(filaRef, orderBy("criadoEm", "asc"));
+        onSnapshot(qFila, (snapshot) => {
+            listaFila = [];
+            snapshot.forEach((docSnap) => {
+                listaFila.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            recarregarTabelas();
+        });
+
+        const qHist = query(histRef, orderBy("concluidoEm", "desc"));
+        onSnapshot(qHist, (snapshot) => {
+            listaHistorico = [];
+            snapshot.forEach((docSnap) => {
+                listaHistorico.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            recarregarTabelas();
+        });
+
+        function recarregarTabelas() {
             const tbody = document.getElementById('tbodyFila');
+            if(!tbody) return;
             tbody.innerHTML = '';
 
             const colspanVal = tipoUsuario === 'balanceiro' ? 8 : 7;
-            if (regs.length === 0) {
+            if (listaFila.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="${colspanVal}" style="text-align:center; color:#888;">Nenhum veículo na fila da balança.</td></tr>`;
             } else {
-                regs.forEach((r, idx) => {
+                listaFila.forEach((r, idx) => {
                     let tr = document.createElement('tr');
+                    const horaStr = r.hora || (r.criadoEm ? new Date(r.criadoEm.toDate()).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : 'Aguardando...');
                     tr.innerHTML = `
                         <td><span class="seq-num">${idx + 1}</span></td>
-                        <td><strong>${r.hora}</strong></td>
+                        <td><strong>${horaStr}</strong></td>
                         <td>${r.nome}</td>
                         <td><i class="fa-brands fa-whatsapp" style="color:#25D366; margin-right:4px;"></i>${r.contato || '-'}</td>
                         <td><strong>${r.placa}</strong></td>
                         <td>${r.transportadora}</td>
-                        <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${r.tipo==='carga'?'#ffc107':'#0d6efd'}">${r.tipo.toUpperCase()}</span></td>
+                        <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${r.tipo==='carga'?'#ffc107':'#0d6efd'}">${(r.tipo||'').toUpperCase()}</span></td>
                         ${tipoUsuario === 'balanceiro' ? `
                             <td style="text-align:center; white-space:nowrap;">
-                                <button type="button" class="btn-move" onclick="moverItem(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:0.4;"' : ''}><i class="fa-solid fa-arrow-up"></i></button>
-                                <button type="button" class="btn-move" onclick="moverItem(${idx}, 1)" ${idx === regs.length - 1 ? 'disabled style="opacity:0.4;"' : ''}><i class="fa-solid fa-arrow-down"></i></button>
                                 <button type="button" class="btn-call" onclick="avisarIndividual('${r.contato}', '${r.nome}')"><i class="fa-brands fa-whatsapp"></i> Avisar</button>
-                                <button type="button" class="btn-delete" onclick="concluirRegistro(${idx})">✔ Concluir</button>
+                                <button type="button" class="btn-delete" onclick="concluirRegistro('${r.id}')">✔ Concluir</button>
                             </td>
                         ` : ''}
                     `;
@@ -644,44 +660,25 @@
                 });
             }
 
-            const hist = JSON.parse(localStorage.getItem('hist_balanca') || '[]');
             const tbodyH = document.getElementById('tbodyHistorico');
+            if(!tbodyH) return;
             tbodyH.innerHTML = '';
 
-            if (hist.length === 0) {
+            if (listaHistorico.length === 0) {
                 tbodyH.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#888;">Nenhum atendimento concluído hoje.</td></tr>`;
             } else {
-                hist.slice().reverse().forEach((h) => {
+                listaHistorico.forEach((h) => {
                     let tr = document.createElement('tr');
+                    const horaStr = h.hora || (h.criadoEm ? new Date(h.criadoEm.toDate()).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '-');
                     tr.innerHTML = `
-                        <td><strong>${h.hora}</strong></td>
+                        <td><strong>${horaStr}</strong></td>
                         <td>${h.nome}</td>
                         <td><strong>${h.placa}</strong></td>
                         <td>${h.transportadora}</td>
-                        <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${h.tipo==='carga'?'#ffc107':'#0d6efd'}">${h.tipo.toUpperCase()}</span></td>
+                        <td><span style="padding:4px 8px; border-radius:12px; color:white; font-weight:bold; font-size:0.8rem; background:${h.tipo==='carga'?'#ffc107':'#0d6efd'}">${(h.tipo||'').toUpperCase()}</span></td>
                     `;
                     tbodyH.appendChild(tr);
                 });
-            }
-        }
-
-        function moverItem(idx, direcao) {
-            let regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
-            let novoIndex = idx + direcao;
-            if (novoIndex < 0 || novoIndex >= regs.length) return;
-            
-            let temp = regs[idx];
-            regs[idx] = regs[novoIndex];
-            regs[novoIndex] = temp;
-
-            localStorage.setItem('regs_balanca', JSON.stringify(regs));
-            recarregarListas();
-        }
-
-        function limparHistorico() {
-            if (confirm("Deseja limpar todo o histórico de hoje?")) {
-                localStorage.removeItem('hist_balanca');
-                recarregarListas();
             }
         }
 
@@ -689,52 +686,56 @@
             return tel ? tel.replace(/\D/g, '') : '';
         }
 
-        function chamarProximo() {
-            const regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
-            if (regs.length === 0) {
+        window.chamarProximo = function() {
+            if (listaFila.length === 0) {
                 alert("Não há veículos na fila!");
                 return;
             }
 
             tocarSomAlertaVisual();
 
-            const p1 = regs[0];
+            const p1 = listaFila[0];
             const n1 = limparDigitos(p1.contato);
             const m1 = encodeURIComponent(`Olá ${p1.nome}! 🚛 AGORA É SUA VEZ! SEJA BEM VINDO!! Dirija-se à balança.`);
             window.open(`https://api.whatsapp.com/send?phone=55${n1}&text=${m1}`, '_blank');
 
-            if (regs.length > 1) {
+            if (listaFila.length > 1) {
                 setTimeout(() => {
-                    const p2 = regs[1];
+                    const p2 = listaFila[1];
                     const n2 = limparDigitos(p2.contato);
                     const m2 = encodeURIComponent(`Olá ${p2.nome}! VOCÊ SERÁ O PRÓXIMO DA FILA. Por favor, fique atento e preparado.`);
                     window.open(`https://api.whatsapp.com/send?phone=55${n2}&text=${m2}`, '_blank');
                 }, 1500);
             }
-        }
+        };
 
-        function avisarIndividual(contato, nome) {
+        window.avisarIndividual = function(contato, nome) {
             tocarSomAlertaVisual();
             const num = limparDigitos(contato);
             const msg = encodeURIComponent(`Olá ${nome}! AGORA É SUA VEZ! SEJA BEM VINDO!!`);
             window.open(`https://api.whatsapp.com/send?phone=55${num}&text=${msg}`, '_blank');
-        }
+        };
 
-        function concluirRegistro(idx) {
-            let regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
-            let hist = JSON.parse(localStorage.getItem('hist_balanca') || '[]');
-            
-            let removido = regs.splice(idx, 1)[0];
-            if (removido) {
-                hist.push(removido);
+        window.concluirRegistro = async function(docId) {
+            const item = listaFila.find(i => i.id === docId);
+            if (item) {
+                await addDoc(histRef, {
+                    ...item,
+                    concluidoEm: serverTimestamp()
+                });
+                await deleteDoc(doc(db, "fila_balanceiro", docId));
             }
+        };
 
-            localStorage.setItem('regs_balanca', JSON.stringify(regs));
-            localStorage.setItem('hist_balanca', JSON.stringify(hist));
-            recarregarListas();
-        }
+        window.limparHistorico = async function() {
+            if (confirm("Deseja limpar todo o histórico de hoje?")) {
+                listaHistorico.forEach(async (h) => {
+                    await deleteDoc(doc(db, "historico_balanceiro", h.id));
+                });
+            }
+        };
 
-        function registrarPesagemDireta(tipoOperacao) {
+        window.registrarPesagemDireta = async function(tipoOperacao) {
             const nome = document.getElementById('campoNome').value.trim();
             const contato = document.getElementById('campoContato').value.trim();
             const placa = document.getElementById('campoPlaca').value.trim().toUpperCase();
@@ -745,47 +746,34 @@
                 return;
             }
 
-            let regs = JSON.parse(localStorage.getItem('regs_balanca') || '[]');
-            let posicao = regs.length + 1;
+            try {
+                await addDoc(filaRef, {
+                    nome,
+                    contato,
+                    placa,
+                    transportadora,
+                    tipo: tipoOperacao,
+                    hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
+                    criadoEm: serverTimestamp()
+                });
 
-            let novoReg = {
-                hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}),
-                nome,
-                contato,
-                placa,
-                transportadora,
-                tipo: tipoOperacao
-            };
+                tocarSomAlertaVisual();
 
-            regs.push(novoReg);
-            localStorage.setItem('regs_balanca', JSON.stringify(regs));
+                document.getElementById('msgSucesso').style.display = 'block';
 
-            recarregarListas();
-            tocarSomAlertaVisual();
+                document.getElementById('campoNome').value = '';
+                document.getElementById('campoContato').value = '';
+                document.getElementById('campoPlaca').value = '';
+                document.getElementById('campoTransportadora').value = '';
 
-            document.getElementById('msgSucesso').style.display = 'block';
+                setTimeout(() => {
+                    document.getElementById('msgSucesso').style.display = 'none';
+                }, 4000);
 
-            const atv = localStorage.getItem('anc_ativo') === 'true';
-            const txt = localStorage.getItem('anc_texto') || '';
-
-            let msgZap = `Olá ${nome}! Seja bem-vindo à Bio Brotas!! 🚛\nVocê está cadastrado com sucesso. Sua posição na fila da balança é a Nº ${posicao}.`;
-            if (atv && txt) {
-                msgZap += `\n\n📢 *ANÚNCIO/COMUNICADO:* ${txt}`;
+            } catch (err) {
+                alert("Erro ao gravar registo: " + err.message);
             }
-
-            const numLimpo = limparDigitos(contato);
-            window.open(`https://api.whatsapp.com/send?phone=55${numLimpo}&text=${encodeURIComponent(msgZap)}`, '_blank');
-
-            // Limpa o formulário
-            document.getElementById('campoNome').value = '';
-            document.getElementById('campoContato').value = '';
-            document.getElementById('campoPlaca').value = '';
-            document.getElementById('campoTransportadora').value = '';
-
-            setTimeout(() => {
-                document.getElementById('msgSucesso').style.display = 'none';
-            }, 4000);
-        }
+        };
     </script>
 </body>
 </html>
