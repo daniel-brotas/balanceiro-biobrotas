@@ -183,23 +183,6 @@
             margin-bottom: 20px;
         }
 
-        .input-icon-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-        .input-icon-wrapper i {
-            position: absolute;
-            left: 12px;
-            top: 40%;
-            transform: translateY(-50%);
-            font-size: 1.2rem;
-            color: #25D366;
-        }
-        .input-icon-wrapper input {
-            padding-left: 40px;
-        }
-
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -262,6 +245,28 @@
             align-items: center;
         }
 
+        /* MODAL DE AVISO / COMUNICADO PARA O MOTORISTA */
+        #modalComunicado {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 99999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .comunicado-card {
+            background: white;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+            border-top: 6px solid #198754;
+        }
+
         @media (max-width: 600px) {
             .container { padding: 10px; margin: 10px auto; }
             .header { padding: 12px; }
@@ -270,6 +275,18 @@
     </style>
 </head>
 <body>
+
+    <!-- MODAL POP-UP DE COMUNICADO PARA O MOTORISTA -->
+    <div id="modalComunicado">
+        <div class="comunicado-card">
+            <div style="font-size: 3rem; color: #198754; margin-bottom: 10px;"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <h2 style="color: #0f5132; margin-bottom: 15px;">Aviso Importante • Bio Brotas</h2>
+            <p id="textoComunicadoExibido" style="font-size: 1.1rem; color: #333; line-height: 1.6; margin-bottom: 25px; background: #f8f9fa; padding: 15px; border-radius: 10px; border: 1px solid #ddd;"></p>
+            <button type="button" onclick="fecharComunicadoMotorista()" style="background: #198754; font-size: 1.1rem; padding: 12px;">
+                ✔ Li e ciente - Entendi
+            </button>
+        </div>
+    </div>
 
     <!-- Ecrã Modo TV / Monitor -->
     <div id="modalTV">
@@ -370,7 +387,7 @@
                 <div class="anuncio-box">
                     <label style="font-weight:bold; color:#0f5132; cursor:pointer; display:flex; align-items:center; gap:8px;">
                         <input type="checkbox" id="chkAnuncio" onchange="toggleAnuncio()" style="width:auto; margin:0;">
-                        📢 Activar Anúncio / Comunicado Automático no WhatsApp
+                        📢 Activar Anúncio / Comunicado Automático para os Motoristas
                     </label>
                     <div id="boxTextoAnuncio" style="display:none; margin-top:10px;">
                         <textarea id="txtAnuncio" rows="3" placeholder="Digite aqui o anúncio (Ex: Apresente a Nota Fiscal no guichê de entrada.)"></textarea>
@@ -627,6 +644,19 @@
             document.getElementById('boxTextoAnuncio').style.display = atv ? 'block' : 'none';
         }
 
+        function verificarEExibirComunicadoMotorista() {
+            const atv = localStorage.getItem('anc_ativo') === 'true';
+            const txt = localStorage.getItem('anc_texto') || '';
+            if (atv && txt.trim() !== '') {
+                document.getElementById('textoComunicadoExibido').innerText = txt;
+                document.getElementById('modalComunicado').style.display = 'flex';
+            }
+        }
+
+        window.fecharComunicadoMotorista = function() {
+            document.getElementById('modalComunicado').style.display = 'none';
+        };
+
         const qFila = query(filaRef, orderBy("criadoEm", "asc"));
         onSnapshot(qFila, (snapshot) => {
             listaFila = [];
@@ -705,7 +735,6 @@
             return tel ? tel.replace(/\D/g, '') : '';
         }
 
-        // Botão 1: Informa que é a vez de ir à balança
         window.chamarParaBalanca = function(contato, nome) {
             tocarSomAlertaVisual();
             const num = limparDigitos(contato);
@@ -713,7 +742,6 @@
             window.open(`https://api.whatsapp.com/send?phone=55${num}&text=${msg}`, '_blank');
         };
 
-        // Botão 2: Informa que logo será a vez dele
         window.avisarProximo = function(contato, nome) {
             tocarSomAlertaVisual();
             const num = limparDigitos(contato);
@@ -734,9 +762,9 @@
 
         window.limparHistorico = async function() {
             if (confirm("Deseja limpar todo o histórico de hoje?")) {
-                listaHistorico.forEach(async (h) => {
+                for (const h of listaHistorico) {
                     await deleteDoc(doc(db, "historico_balanceiro", h.id));
-                });
+                }
             }
         };
 
@@ -798,16 +826,12 @@
 
                         tocarSomAlertaVisual();
 
-                        document.getElementById('msgSucesso').style.display = 'block';
-
                         document.getElementById('campoNome').value = '';
                         document.getElementById('campoContato').value = '';
                         document.getElementById('campoPlaca').value = '';
                         document.getElementById('campoTransportadora').value = '';
 
-                        setTimeout(() => {
-                            document.getElementById('msgSucesso').style.display = 'none';
-                        }, 4000);
+                        verificarEExibirComunicadoMotorista();
 
                     } catch (err) {
                         alert("Erro ao gravar registo na nuvem: " + err.message);
